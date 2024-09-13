@@ -1,7 +1,6 @@
 import streamlit as st
 import sqlite3
 import math
-import well_plate as wp
 import pandas as pd
 import csv
 
@@ -48,13 +47,11 @@ rack = False
 tube = False
 
 placeholder = st.empty()
-placeholder2 = st.empty()
 placeholder_sidebar = st.sidebar.empty()
 
 ## Search
 if search or query_barcode:
     placeholder.empty()
-    placeholder2.empty()
     placeholder_sidebar.empty()
     df = pd.read_sql_query('SELECT * FROM Inventory WHERE Rack = "'+query_barcode+'"',conn)
     if not df.empty:
@@ -77,12 +74,7 @@ if search or query_barcode:
                 ones.append(1)
             df['ones'] = ones
 
-            wp = wp.WellPlate(96)
-            wp.add_data(df['ones'])
-            rack_map = wp.plot(key = 'ones',auto_open = False)
-            
-            placeholder.plotly_chart(rack_map)
-            placeholder2.table(df.drop(['ones'],axis=1))
+            placeholder.table(df.drop(['ones'],axis=1))
 
         if tube:
             placeholder_sidebar.image("./MatrixTube.png")
@@ -94,7 +86,6 @@ if search or query_barcode:
 ## Update
 if update:
     placeholder.empty()
-    placeholder2.empty()
     placeholder_sidebar.empty()
     df = pd.read_sql_query('SELECT * FROM Inventory', conn)
     placeholder.table(df)
@@ -105,7 +96,6 @@ if update:
     for pos in range(len(df_update)): 
         if df_update['Tube'][pos] not in df['Tube'].values.tolist() and df_update['Position'][pos] not in df['Position'].values.tolist():
             __insert(df_update['Rack'][pos],df_update['Tube'][pos],df_update['Position'][pos])
-
 
 
 conn.close()
