@@ -2,7 +2,6 @@ import streamlit as st
 import sqlite3
 import math
 import pandas as pd
-import csv
 
 ##
 ## sql code to create tables
@@ -177,7 +176,7 @@ def main():
         st.session_state['df_worklist'] = pd.DataFrame()
     
     st.title("Matrix Racks Inventory")
-    radio = st.sidebar.radio("Choose!",["General Search","Worklist"])
+    radio = st.sidebar.radio("Choose!",["General Search","Worklist","All Inventory"])
 
     if radio == "General Search":
 
@@ -197,24 +196,6 @@ def main():
 
         if st.button("Clear worklist"):
             st.session_state['df_worklist'] = pd.DataFrame()
-        # if not st.session_state['df_worklist'].empty:
-        #     st.dataframe(st.session_state['df_worklist'])
-        #     # df_delete_buttons = pd.DataFrame([False]*len(st.session_state['df_worklist']), columns = ["Delete"])
-        #     # df_delete_buttons = st.data_editor(st.session_state['df_worklist'].join(df_delete_buttons, how = 'outer'), disabled = ["Rack","Tube","Position"])
-        #     # samples_in_worklist = len(st.session_state['df_worklist'])
-
-        #     # st.session_state['df_worklist'] = pd.DataFrame(['Rack','Tube','Position'])
-        #     # # st.write(df_delete_buttons.drop('Delete', axis = 1))
-        #     # for index in range(samples_in_worklist):
-        #     #     if df_delete_buttons['Delete'][index] == False:
-        #     #         # st.session_state['df_worklist']
-        #     #         st.write(df_delete_buttons[index])
-        #     #         st.session_state['df_worklist'] = pd.concat([st.session_state['df_worklist'],df_delete_buttons.iloc[index].drop('Delete')])
-        #     # # st.write(df_delete_buttons)
-        #     # # st.write(st.session_state['df_worklist'])
-                    
-        # else:
-        #     st.write("No sample in worklist")
         
     conn = sqlite3.connect('MatrixRacksInventory.db')
     cur = conn.cursor()
@@ -274,8 +255,13 @@ def main():
                 tray_existed = False
                 tray_position_and_location = False
 
-                cur.execute('''SELECT * FROM Tray WHERE Position = ? AND Location_ID = ? ''', (df_update['Tray Position'][pos],location_id,))
-                tray_db = cur.fetchone()
+                tray_db = []
+                if not location_id == 1:
+                    cur.execute('''SELECT * FROM Tray WHERE Position = ? AND Location_ID = ? ''', (df_update['Tray Position'][pos],location_id,))
+                    tray_db = cur.fetchone()
+                else:
+                    df_update.at[pos,'Tray Position'] = None
+
 
                 if tray_db:
                     tray_position_and_location = True
@@ -312,8 +298,12 @@ def main():
                     rack_existed = False
                     rack_position_and_tray = False
 
-                    cur.execute('''SELECT * FROM Rack WHERE Position = ? AND Tray_ID = ? ''', (df_update['Rack Position'][pos],tray_id,))
-                    rack_db = cur.fetchone()
+                    rack_db = []
+                    if not tray_id == 1:
+                        cur.execute('''SELECT * FROM Rack WHERE Position = ? AND Tray_ID = ? ''', (df_update['Rack Position'][pos],tray_id,))
+                        rack_db = cur.fetchone()
+                    else:
+                        df_update.at[pos,'Rack Position'] = None
 
                     if rack_db:
                         rack_position_and_tray = True
@@ -350,8 +340,12 @@ def main():
                     tube_existed = False
                     tube_position_and_rack = False
 
-                    cur.execute('''SELECT * FROM Tube WHERE Position = ? AND Rack_ID = ? ''', (df_update['Tube Position'][pos],rack_id,))
-                    tube_db = cur.fetchone()
+                    tube_db = []
+                    if not rack_id == 1:
+                        cur.execute('''SELECT * FROM Tube WHERE Position = ? AND Rack_ID = ? ''', (df_update['Tube Position'][pos],rack_id,))
+                        tube_db = cur.fetchone()
+                    else:
+                        df_update.at[pos,'Tube Position'] = None
 
                     if tube_db:
                         tube_position_and_rack = True
@@ -421,6 +415,24 @@ def main():
     if not st.session_state['df_worklist'].empty and radio == "Worklist":
         st.dataframe(st.session_state['df_worklist'])
         # st.dataframe(st.session_state['df_worklist'].sort_values(['Name','Shelf','Tray Barcode','Rack Position','Rack Barcode','Tube Position']))
+
+    if radio == "All Inventory":
+        df_tube = pd.read_sql_query('SELECT * FROM Tube', conn)
+        df_rack = pd.read_sql_query('SELECT * FROM Rack',conn)
+        df_tray = pd.read_sql_query('SELECT * FROM Tray',conn)
+        df_location = pd.read_sql_query('SELECT * FROM Location',conn)
+
+        st.write("Tubes")
+        st.dataframe(df_tube)
+
+        st.write("Racks")
+        st.dataframe(df_rack)
+
+        st.write("Trays")
+        st.dataframe(df_tray)
+
+        st.write("Locations")
+        st.dataframe(df_location)
         
     conn.close()
 
